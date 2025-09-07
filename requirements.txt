@@ -2,6 +2,7 @@ fastapi
 uvicorn
 jinja2
 pydantic>=2
+pydantic[email]
 markdown2
 weasyprint>=60,<63
 reportlab
