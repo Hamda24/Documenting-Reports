@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{ title }}</title>
   <style>
-    /* 1) Embed your local font files (exact filenames you have) */
+    /* Embed your local Inter fonts (exact filenames) */
     @font-face {
       font-family: "Inter";
       src: url("assets/fonts/Inter_18pt-Regular.ttf") format("truetype");
@@ -31,7 +31,6 @@
       --line: #e5e7eb;
     }
 
-    /* Repeating footer on every page (WeasyPrint) */
     @page {
       size: A4;
       margin: 20mm 15mm 20mm 15mm;
@@ -47,13 +46,12 @@
       box-sizing: border-box
     }
 
-    /* 2) Force this font everywhere for identical output */
     body {
       font-family: "Inter", Arial, sans-serif;
       color: var(--ink);
       margin: 0;
       line-height: 1.55;
-      font-weight: 400;
+      font-weight: 400
     }
 
     .page {
@@ -63,8 +61,7 @@
     h1 {
       font-size: 28px;
       margin: 0 0 8px;
-      font-weight: 700;
-      /* use the Bold face we embedded */
+      font-weight: 700
     }
 
     h2 {
@@ -72,8 +69,7 @@
       margin: 24px 0 8px;
       border-bottom: 1px solid var(--line);
       padding-bottom: 6px;
-      font-weight: 700;
-      /* bold headings */
+      font-weight: 700
     }
 
     p {
@@ -87,8 +83,7 @@
       color: var(--brand);
       border-radius: 999px;
       font-size: 12px;
-      font-weight: 700;
-      /* badge looks better bold */
+      font-weight: 700
     }
 
     table {
@@ -128,7 +123,6 @@
       word-break: break-all;
     }
   </style>
-
 </head>
 
 <body>

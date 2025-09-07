@@ -12,45 +12,39 @@ API_KEY = os.getenv("REPORTDOC_API_KEY")
 
 def require_api_key(x_api_key: str = Header(None)):
     if not API_KEY or x_api_key != API_KEY:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+      raise HTTPException(status_code=401, detail="Unauthorized")
     return True
 
-# Try WeasyPrint (best styling). If it fails on Windows (GTK/Cairo not installed), fall back to ReportLab.
+# Detect WeasyPrint
 WEASY_OK = True
 try:
-    from weasyprint import HTML  # type: ignore
+    from weasyprint import HTML  # import only; do NOT render here
 except Exception:
     WEASY_OK = False
-    from reportlab.lib.pagesizes import A4  # type: ignore
-    from reportlab.pdfgen import canvas     # type: ignore
+    # ReportLab fallback imports will be done only if needed
 
 app = FastAPI(title="ReportDoc PDF Service", version="1.1")
 
-# --- NEW: absolute path to templates for font resolution ---
+# Absolute path so WeasyPrint can resolve assets/fonts
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 
 env = Environment(
-    loader=FileSystemLoader(str(TEMPLATES_DIR)),  # CHANGED: use absolute path
+    loader=FileSystemLoader(str(TEMPLATES_DIR)),
     autoescape=select_autoescape(["html", "xml"])
 )
 
-# Store generated PDFs so GPT can link to them reliably
-FILES_DIR = Path("files")
-FILES_DIR.mkdir(exist_ok=True)
+FILES_DIR = Path("files"); FILES_DIR.mkdir(exist_ok=True)
 
 # ---------- Models ----------
 class Owner(BaseModel):
     name: str
     email: EmailStr
-
 class GSheet(BaseModel):
     subtitle: str
     url: HttpUrl
-
 class Change(BaseModel):
     date: str
     change: str
-
 class Payload(BaseModel):
     title: str
     media_team: str
@@ -67,9 +61,8 @@ class Payload(BaseModel):
     notes: Optional[str] = None
     version: str = "1.0"
     changelog: List[Change] = []
-
     @model_validator(mode="after")
-    def _cross_field_rules(self):
+    def _rules(self):
         if self.automated and self.bigquery_link is None:
             raise ValueError("bigquery_link is required when automated=true")
         if not self.notes or not str(self.notes).strip():
@@ -90,36 +83,29 @@ def _write_pdf(html: str, md_source: str, generated_at: str) -> bytes:
         tmp_path = tmp.name
     try:
         if WEASY_OK:
-            # --- CHANGED: give WeasyPrint a base_url so it can load fonts: assets/fonts/*.ttf ---
             HTML(string=html, base_url=str(TEMPLATES_DIR.resolve())).write_pdf(tmp_path)
         else:
-            # ReportLab fallback with page footer
-            from reportlab.lib.pagesizes import A4  # safe to import here too
+            from reportlab.lib.pagesizes import A4
             from reportlab.pdfgen import canvas
             width, height = A4
             c = canvas.Canvas(tmp_path, pagesize=A4)
-
-            def draw_footer(page_num: int):
-                c.setFont("Times-Roman", 9)
-                c.setFillGray(0.4)
-                c.drawRightString(width - 40, 20, f"Generated: {generated_at}  •  Page {page_num}")
-
+            def draw_footer(page_num:int):
+                c.setFont("Times-Roman", 9); c.setFillGray(0.4)
+                c.drawRightString(width-40, 20, f"Generated: {generated_at}  •  Page {page_num}")
             page_num = 1
-            text = c.beginText(40, height - 40)
-            text.setFont("Times-Roman", 11)
+            text = c.beginText(40, height-40); text.setFont("Times-Roman", 11)
             for line in md_source.splitlines():
                 if text.getY() < 40:
                     c.drawText(text); draw_footer(page_num); c.showPage()
                     page_num += 1
-                    text = c.beginText(40, height - 40); text.setFont("Times-Roman", 11)
+                    text = c.beginText(40, height-40); text.setFont("Times-Roman", 11)
                 text.textLine(line)
             c.drawText(text); draw_footer(page_num); c.save()
-
         with open(tmp_path, "rb") as f:
             pdf_bytes = f.read()
     finally:
         try: os.unlink(tmp_path)
-        except Exception: pass
+        except: pass
     return pdf_bytes
 
 def _safe_filename(title: str) -> str:
@@ -152,15 +138,11 @@ def render_pdf_base64(payload: Payload, request: Request):
     html, md_source = _render_html_and_md(payload, generated_at)
     pdf_bytes = _write_pdf(html, md_source, generated_at)
 
-    # Save a copy to /files for stable direct downloads
     fname = _safe_filename(payload.title)
-    final_path = FILES_DIR / fname
-    with open(final_path, "wb") as out:
-        out.write(pdf_bytes)
+    (FILES_DIR / fname).write_bytes(pdf_bytes)
 
     base = str(request.base_url).rstrip("/")
     file_url = f"{base}/file/{fname}"
-
     return {
         "filename": f"{payload.title.replace(' ', '_')}.pdf",
         "mime": "application/pdf",
