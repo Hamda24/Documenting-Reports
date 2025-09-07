@@ -3,5 +3,5 @@ uvicorn[standard]
 jinja2
 markdown2
 pydantic[email]
-weasyprint
+weasyprint>=60,<63
 reportlab
