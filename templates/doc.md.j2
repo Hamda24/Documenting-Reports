@@ -1,0 +1,44 @@
+# {{ title }}
+
+**Media Team:** {{ media_team }}  
+**Owner:** {{ owner.name }} — {{ owner.email }}  
+**Frequency:** {{ frequency | capitalize }}
+
+---
+
+## Description
+{{ description }}
+
+## Platforms
+{% if platforms and platforms|length > 0 %}
+{{ platforms | join(', ') }}
+{% else %}
+—
+{% endif %}
+
+## Tools Used
+{% if tools and tools|length > 0 %}
+{{ tools | join(', ') }}
+{% else %}
+—
+{% endif %}
+
+## Links
+| Type | Title | URL |
+|---|---|---|
+{% for s in google_sheets %}| Google Sheet | {{ s.subtitle }} | [{{ s.url }}]({{ s.url }}) |
+{% endfor %}
+| Report | — | [{{ report_link }}]({{ report_link }}) |
+{% if automated and bigquery_link %}| BigQuery | — | [{{ bigquery_link }}]({{ bigquery_link }}) |{% endif %}
+
+## Adjustments Needed
+{% if adjustments and adjustments|length > 0 %}
+{% for a in adjustments %}- {{ a }}
+{% endfor %}
+{% else %}
+None at this time.
+{% endif %}
+
+## Additional Notes / FAQ
+{{ notes or ("For access issues, contact " ~ owner.email) }}
+
